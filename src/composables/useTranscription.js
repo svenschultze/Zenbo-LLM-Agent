@@ -4,6 +4,7 @@ import { useVAD } from './useVAD';
 
 const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
 const apiBaseUrl = import.meta.env.VITE_OPENAI_API_BASE_URL;
+const apiModel = import.meta.env.VITE_SPEECH_MODEL;
 
 const openaiClient = apiKey
   ? new OpenAI({
@@ -59,7 +60,7 @@ export function useTranscription(options = {}) {
       const file = new File([blob], 'speech.wav', { type: 'audio/wav' });
       const transcription = await openaiClient.audio.transcriptions.create({
         file,
-        model: 'leapintime/speech2text',
+        model: apiModel,
       });
 
       const text = transcription?.text || '';

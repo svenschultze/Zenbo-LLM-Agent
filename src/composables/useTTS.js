@@ -4,6 +4,8 @@ import { useRobotAPI } from './useRobotAPI';
 
 const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
 const apiBaseUrl = import.meta.env.VITE_OPENAI_API_BASE_URL;
+const apiModel = import.meta.env.VITE_TTS_MODEL;
+const apiVoice = import.meta.env.VITE_TTS_VOICE;
 
 const openaiClient = apiKey
   ? new OpenAI({
@@ -15,8 +17,8 @@ const openaiClient = apiKey
 
 export function useTTS(options = {}) {
   const {
-    model = 'leapintime/text2speech',
-    voice = 'sophia',
+    model = apiModel,
+    voice = apiVoice,
     format = 'mp3',
   } = options;
 

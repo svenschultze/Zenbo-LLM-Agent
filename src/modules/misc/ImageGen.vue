@@ -38,6 +38,7 @@ function sendReturn(event, payload) {
 
 const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
 const apiBaseUrl = import.meta.env.VITE_OPENAI_API_BASE_URL;
+const apiImageModel = import.meta.env.VITE_IMAGE_MODEL;
 
 const openaiClient = apiKey
   ? new OpenAI({
@@ -98,7 +99,7 @@ async function handleGenerateImage(event) {
 
   try {
     const response = await openaiClient.images.generate({
-      model: 'leapintime/text2image',
+      model: apiImageModel,
       prompt: trimmedPrompt,
       size: imgSize,
       n: 1,

@@ -11,6 +11,7 @@ import OpenAI from 'openai';
 
 const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
 const baseUrl = import.meta.env.VITE_OPENAI_API_BASE_URL;
+const apiModel = import.meta.env.VITE_LLM_MODEL;
 
 if (!apiKey) {
   console.warn('VITE_OPENAI_API_KEY is not set; OpenAI agent calls will fail.');
@@ -193,7 +194,7 @@ function createAgent() {
     name: 'Data agent',
     instructions,
     tools,
-    model: 'leapintime/robot',
+    model: apiModel,
   });
 }
 
