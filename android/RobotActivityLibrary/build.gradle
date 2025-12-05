@@ -1,0 +1,35 @@
+apply plugin: 'com.android.library'
+
+android {
+    namespace "com.robot.asus.robotactivity"
+    compileSdkVersion 34
+
+    defaultConfig {
+        minSdkVersion 23
+        targetSdkVersion 34
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    packagingOptions {
+        doNotStrip "*/armeabi-v7a/*"
+        doNotStrip "*/arm64-v8a/*"
+        doNotStrip "*/x86/*"
+        doNotStrip "*/x86_64/*"
+    }
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.12'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    api files('../ZenboSDK/ZenboJuniorSDK.jar')
+}

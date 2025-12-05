@@ -1,0 +1,63 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace "com.robot.asus.kira"
+    // UPDATED: Modern libraries require a recent Android SDK.
+    compileSdkVersion 36
+
+    defaultConfig {
+        applicationId "com.robot.asus.kira"
+        minSdkVersion 26
+        // UPDATED: targetSdkVersion should match compileSdkVersion.
+        targetSdkVersion 36
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    packagingOptions {
+        doNotStrip "*/armeabi-v7a/*"
+        doNotStrip "*/arm64-v8a/*"
+        doNotStrip "*/x86/*"
+        doNotStrip "*/x86_64/*"
+    }
+
+    compileOptions {
+        // Use a more modern Java language level; Android desugaring will adapt bytecode as needed.
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+}
+
+// 2. Add Mozilla’s Maven repository
+// This tells Gradle where to download the GeckoView library from.
+// google() and mavenCentral() are standard repositories for Android development.
+repositories {
+    google()
+    mavenCentral()
+    maven {
+        url "https://maven.mozilla.org/maven2/"
+    }
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+
+    // UPDATED: Migrated from the old support library to the modern AndroidX equivalent.
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+
+    implementation project(':RobotActivityLibrary')
+
+    // 3. ADDED: The GeckoView implementation dependency
+    implementation 'org.mozilla.geckoview:geckoview:143.0.20250929153833'
+
+    // AndroidAsync HTTP/WebSocket server for robot event streaming.
+    implementation 'com.koushikdutta.async:androidasync:3.1.0'
+
+    // ADDED: Swagger UI
+    implementation 'org.webjars:swagger-ui:5.17.14'
+}
