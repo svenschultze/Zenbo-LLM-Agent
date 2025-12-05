@@ -35,5 +35,5 @@ coverage
 # Vitest
 __screenshots__/
 
-android\KiraZenbo\src\main\assets\app\index.html
-.git2
+# Generated assets
+android/KiraZenbo/src/main/assets/app/index.html
