@@ -13,6 +13,8 @@ The goal is to decouple the dialog/agent logic from the native UI and implement 
 
 ## Architecture Overview
 
+<img width="1872" height="1246" alt="image" src="https://github.com/user-attachments/assets/5d9c9855-577d-47e9-80f0-158ec9158936" />
+
 ### Frontend (Vue 3 + OpenAI Agents)
 
 - The web UI lives under `src/`:
