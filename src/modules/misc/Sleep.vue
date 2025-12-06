@@ -8,9 +8,14 @@
 </template>
 
 <script setup>
+import { onMounted, onUnmounted } from 'vue';
 import { useSleepMode } from '@/composables/useSleepMode';
+import { useRobotEvents } from '@/composables/useRobotEvents';
 
-const { sleeping, goToSleep } = useSleepMode();
+const { sleeping, goToSleep, wakeUp } = useSleepMode();
+const { onEventType } = useRobotEvents({ autoConnect: true });
+
+let removeOnVoiceDetect;
 
 function sendReturn(event, payload) {
   event.target.dispatchEvent(new CustomEvent('return', { detail: payload }));
@@ -25,5 +30,18 @@ function handleGoToSleep(event) {
   goToSleep();
   sendReturn(event, { ok: true, sleeping: true });
 }
-</script>
 
+onMounted(() => {
+  removeOnVoiceDetect = onEventType('onVoiceDetect', () => {
+    if (sleeping.value) {
+      wakeUp();
+    }
+  });
+});
+
+onUnmounted(() => {
+  if (typeof removeOnVoiceDetect === 'function') {
+    removeOnVoiceDetect();
+  }
+});
+</script>

@@ -9,7 +9,6 @@ import Assist from './modules/misc/Assist.vue';
 import ImageGen from './modules/misc/ImageGen.vue';
 import Search from './modules/misc/Search.vue';
 import Sleep from './modules/misc/Sleep.vue';
-import SleepWake from './modules/event/SleepWake.vue';
 
 const {
   prompt,
@@ -41,7 +40,6 @@ setInterval(() => {
   <Search />
   <Robot />
   <Sleep />
-  <SleepWake />
 </template>
 
 <style scoped></style>
