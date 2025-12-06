@@ -17,6 +17,11 @@
       description="When called, the robot will start following the user around."
       @call="handleFollowing"
     />
+    <tool
+      name="stop_robot_following"
+      description="When called, the robot will stop following the user."
+      @call="handleStopFollowing"
+    />
     <p>Robot Detected</p>
     <context name="robot">
         You are a robot named Kira. You are employed by the Taunussparkasse. You help the user in any way you can. Always be polite and friendly, and respond in short sentences in German. Your output is spoken language, so don't include any special formatting or markup.
@@ -39,6 +44,7 @@ const {
   setExpression,
   expressionAndSpeak,
   followFace,
+  stopFollowing,
 } = useRobotAPI({ autoCheckHealth: true });
 
 async function handleSpeak(event) {
@@ -73,5 +79,9 @@ async function handleExpressionAndSpeak(event) {
 
 async function handleFollowing() {
   await followFace();
+}
+
+async function handleStopFollowing() {
+  await stopFollowing();
 }
 </script>

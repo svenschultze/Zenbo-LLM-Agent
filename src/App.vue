@@ -9,6 +9,7 @@ import Assist from './modules/misc/Assist.vue';
 import ImageGen from './modules/misc/ImageGen.vue';
 import Search from './modules/misc/Search.vue';
 import Sleep from './modules/misc/Sleep.vue';
+import SystemStatus from './modules/misc/SystemStatus.vue';
 
 const {
   prompt,
@@ -38,6 +39,7 @@ setInterval(() => {
   <Assist />
   <ImageGen />
   <Search />
+  <SystemStatus />
   <Robot />
   <Sleep />
 </template>

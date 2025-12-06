@@ -157,6 +157,10 @@ export function useRobotAPI(options = {}) {
     await postForm('/api/utility/play_emotional_action', { face, action: value });
   };
 
+  const stopFollowing = async () => {
+    await postForm('/api/utility/stop_following', {});
+  };
+
   const getBlueLightFilterEnable = async () => {
     return getJson('/api/utility/get_blue_light_filter_enable');
   };
@@ -211,6 +215,7 @@ export function useRobotAPI(options = {}) {
     lookAtUser,
     playAction,
     playEmotionalAction,
+    stopFollowing,
     getBlueLightFilterEnable,
     getBlueLightFilterMode,
     setBlueLightFilterMode,

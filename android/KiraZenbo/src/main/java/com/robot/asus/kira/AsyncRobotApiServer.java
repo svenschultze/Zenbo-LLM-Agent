@@ -1,12 +1,24 @@
 package com.robot.asus.kira;
 
 import android.content.Context;
+import android.app.ActivityManager;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
+import android.os.BatteryManager;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Build;
+import android.os.Environment;
+import android.os.StatFs;
 import android.util.Log;
 
 import com.asus.robotframework.API.RobotAPI;
 import com.asus.robotframework.API.RobotFace;
+import com.asus.robotframework.API.RobotCommand;
 import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.body.UrlEncodedFormBody;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
@@ -14,6 +26,7 @@ import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
@@ -78,6 +91,219 @@ public class AsyncRobotApiServer {
                 response.code(200);
                 response.getHeaders().set("Content-Type", "application/json");
                 response.send("{\"status\":\"ok\"}");
+            }
+        });
+
+        // System API - Battery status
+        server.get("/api/system/battery", (req, res) -> {
+            addCorsHeaders(req, res);
+
+            try {
+                IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+                Intent batteryStatus = context.registerReceiver(null, ifilter);
+
+                if (batteryStatus == null) {
+                    sendBadRequest(res, "Battery status unavailable");
+                    return;
+                }
+
+                int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+                int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+                int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+                int plugged = batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
+                int health = batteryStatus.getIntExtra(BatteryManager.EXTRA_HEALTH, -1);
+                int temperature = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0); // tenths of a degree C
+                int voltage = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0); // millivolts
+                boolean present = batteryStatus.getBooleanExtra(BatteryManager.EXTRA_PRESENT, false);
+                String technology = batteryStatus.getStringExtra(BatteryManager.EXTRA_TECHNOLOGY);
+
+                float percentage = -1f;
+                if (level >= 0 && scale > 0) {
+                    percentage = (level * 100f) / scale;
+                }
+
+                JSONObject obj = new JSONObject();
+                obj.put("level", level);
+                obj.put("scale", scale);
+                obj.put("percentage", percentage);
+                obj.put("status", status);
+                obj.put("plugged", plugged);
+                obj.put("health", health);
+                obj.put("temperature_c", temperature / 10.0);
+                obj.put("voltage_mv", voltage);
+                obj.put("present", present);
+                obj.put("technology", technology != null ? technology : JSONObject.NULL);
+
+                res.code(200);
+                res.getHeaders().set("Content-Type", "application/json");
+                res.send(obj.toString());
+            } catch (JSONException e) {
+                Log.e(TAG, "Failed to build battery JSON", e);
+                res.code(500);
+                res.getHeaders().set("Content-Type", "application/json");
+                res.send("{\"error\":\"Failed to read battery status\"}");
+            } catch (Exception e) {
+                Log.e(TAG, "Unexpected error reading battery status", e);
+                res.code(500);
+                res.getHeaders().set("Content-Type", "application/json");
+                res.send("{\"error\":\"Unexpected error reading battery status\"}");
+            }
+        });
+
+        // System API - Device info
+        server.get("/api/system/device", (req, res) -> {
+            addCorsHeaders(req, res);
+            try {
+                JSONObject obj = new JSONObject();
+                obj.put("manufacturer", Build.MANUFACTURER);
+                obj.put("brand", Build.BRAND);
+                obj.put("model", Build.MODEL);
+                obj.put("device", Build.DEVICE);
+                obj.put("product", Build.PRODUCT);
+                obj.put("hardware", Build.HARDWARE);
+                obj.put("android_version", Build.VERSION.RELEASE);
+                obj.put("sdk_int", Build.VERSION.SDK_INT);
+
+                res.code(200);
+                res.getHeaders().set("Content-Type", "application/json");
+                res.send(obj.toString());
+            } catch (JSONException e) {
+                Log.e(TAG, "Failed to build device JSON", e);
+                res.code(500);
+                res.getHeaders().set("Content-Type", "application/json");
+                res.send("{\"error\":\"Failed to read device info\"}");
+            }
+        });
+
+        // System API - Connectivity
+        server.get("/api/system/connectivity", (req, res) -> {
+            addCorsHeaders(req, res);
+            try {
+                ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                if (cm == null) {
+                    sendBadRequest(res, "Connectivity service unavailable");
+                    return;
+                }
+
+                boolean isConnected = false;
+                String type = "none";
+                boolean isMetered = cm.isActiveNetworkMetered();
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    Network activeNetwork = cm.getActiveNetwork();
+                    if (activeNetwork != null) {
+                        NetworkCapabilities caps = cm.getNetworkCapabilities(activeNetwork);
+                        if (caps != null) {
+                            isConnected = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                                    && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+                            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                                type = "wifi";
+                            } else if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                                type = "cellular";
+                            } else if (caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+                                type = "ethernet";
+                            } else {
+                                type = "other";
+                            }
+                        }
+                    }
+                } else {
+                    NetworkInfo info = cm.getActiveNetworkInfo();
+                    if (info != null && info.isConnected()) {
+                        isConnected = true;
+                        switch (info.getType()) {
+                            case ConnectivityManager.TYPE_WIFI:
+                                type = "wifi";
+                                break;
+                            case ConnectivityManager.TYPE_MOBILE:
+                                type = "cellular";
+                                break;
+                            case ConnectivityManager.TYPE_ETHERNET:
+                                type = "ethernet";
+                                break;
+                            default:
+                                type = "other";
+                                break;
+                        }
+                    }
+                }
+
+                JSONObject obj = new JSONObject();
+                obj.put("connected", isConnected);
+                obj.put("type", type);
+                obj.put("metered", isMetered);
+
+                res.code(200);
+                res.getHeaders().set("Content-Type", "application/json");
+                res.send(obj.toString());
+            } catch (JSONException e) {
+                Log.e(TAG, "Failed to build connectivity JSON", e);
+                res.code(500);
+                res.getHeaders().set("Content-Type", "application/json");
+                res.send("{\"error\":\"Failed to read connectivity info\"}");
+            }
+        });
+
+        // System API - Memory
+        server.get("/api/system/memory", (req, res) -> {
+            addCorsHeaders(req, res);
+            try {
+                ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+                if (am == null) {
+                    sendBadRequest(res, "Activity service unavailable");
+                    return;
+                }
+
+                ActivityManager.MemoryInfo memInfo = new ActivityManager.MemoryInfo();
+                am.getMemoryInfo(memInfo);
+
+                JSONObject obj = new JSONObject();
+                obj.put("avail_mem", memInfo.availMem);
+                obj.put("total_mem", memInfo.totalMem);
+                obj.put("low_memory", memInfo.lowMemory);
+                obj.put("threshold", memInfo.threshold);
+
+                res.code(200);
+                res.getHeaders().set("Content-Type", "application/json");
+                res.send(obj.toString());
+            } catch (JSONException e) {
+                Log.e(TAG, "Failed to build memory JSON", e);
+                res.code(500);
+                res.getHeaders().set("Content-Type", "application/json");
+                res.send("{\"error\":\"Failed to read memory info\"}");
+            }
+        });
+
+        // System API - Storage
+        server.get("/api/system/storage", (req, res) -> {
+            addCorsHeaders(req, res);
+            try {
+                StatFs statFs = new StatFs(Environment.getDataDirectory().getAbsolutePath());
+
+                long blockSize = statFs.getBlockSizeLong();
+                long totalBlocks = statFs.getBlockCountLong();
+                long availableBlocks = statFs.getAvailableBlocksLong();
+
+                long totalBytes = totalBlocks * blockSize;
+                long availableBytes = availableBlocks * blockSize;
+
+                JSONObject obj = new JSONObject();
+                obj.put("total_bytes", totalBytes);
+                obj.put("available_bytes", availableBytes);
+
+                res.code(200);
+                res.getHeaders().set("Content-Type", "application/json");
+                res.send(obj.toString());
+            } catch (IllegalArgumentException e) {
+                Log.e(TAG, "Failed to read storage stats", e);
+                res.code(500);
+                res.getHeaders().set("Content-Type", "application/json");
+                res.send("{\"error\":\"Failed to read storage info\"}");
+            } catch (JSONException e) {
+                Log.e(TAG, "Failed to build storage JSON", e);
+                res.code(500);
+                res.getHeaders().set("Content-Type", "application/json");
+                res.send("{\"error\":\"Failed to serialize storage info\"}");
             }
         });
 
@@ -173,6 +399,12 @@ public class AsyncRobotApiServer {
 
         server.post("/api/utility/follow_object", (req, res) -> {
             mainHandler.post(robotAPI.utility::followObject);
+            addCorsHeaders(req, res);
+            sendQueued(res);
+        });
+
+        server.post("/api/utility/stop_following", (req, res) -> {
+            mainHandler.post(() -> robotAPI.cancelCommand(RobotCommand.FOLLOW_USER));
             addCorsHeaders(req, res);
             sendQueued(res);
         });
